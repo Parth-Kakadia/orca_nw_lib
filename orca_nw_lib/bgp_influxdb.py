@@ -17,7 +17,6 @@ def insert_bgp_in_influxdb(device_ip: str, bgp_global_list: dict):
         device_ip (str): Object of type Device.
         bgp (dict): Dictionary pf key value pairs.
     """
-    print("Influxdb called....")
     if not device_ip:
         _logger.error("Device object is required.")
         return
