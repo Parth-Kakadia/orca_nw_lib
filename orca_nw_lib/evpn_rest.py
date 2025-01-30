@@ -1,5 +1,5 @@
 import json
-from orca_nw_lib.rest_client import HttpRequest, send_req, do_json_syntax_correction
+from orca_nw_lib.rest_client import HttpRequest, send_req
 from orca_nw_lib.utils import get_logging
 
 

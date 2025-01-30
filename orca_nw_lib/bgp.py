@@ -1,7 +1,6 @@
 import json
 from typing import List
 
-#from orca_nw_lib.bgp_client import get_bgp_show_info, get_bgp_show_statistics_info
 from orca_nw_lib.bgp_influxdb import insert_bgp_in_influxdb, insert_bgp_neighbor_in_influxdb, insert_bgp_show_in_influxdb, insert_bgp_statistics_in_influxdb
 from orca_nw_lib.bgp_rest import get_bgp_show_info, get_bgp_show_statistics_info
 from .bgp_db import (
@@ -109,15 +108,15 @@ def _create_bgp_graph_objects(device_ip: str) -> dict:
             router_id=bgp_config.get("router_id"),
             vrf_name=bgp_config.get("vrf_name"),
             always_compare_med=bgp_config.get("always_compare_med"),
-           ebgp_requires_policy=bgp_config.get("ebgp_requires_policy"),
-           external_compare_router_id=bgp_config.get("external_compare_router_id"),
-           fast_external_failover=bgp_config.get("fast_external_failover"),
-           holdtime=bgp_config.get("holdtime"),
-           ignore_as_path_length=bgp_config.get("ignore_as_path_length"),
-           keepalive=bgp_config.get("keepalive"),
-           load_balance_mp_relax=bgp_config.get("load_balance_mp_relax"),
-           log_nbr_state_changes=bgp_config.get("log_nbr_state_changes"),
-           network_import_check=bgp_config.get("network_import_check")
+            ebgp_requires_policy=bgp_config.get("ebgp_requires_policy"),
+            external_compare_router_id=bgp_config.get("external_compare_router_id"),
+            fast_external_failover=bgp_config.get("fast_external_failover"),
+            holdtime=bgp_config.get("holdtime"),
+            ignore_as_path_length=bgp_config.get("ignore_as_path_length"),
+            keepalive=bgp_config.get("keepalive"),
+            load_balance_mp_relax=bgp_config.get("load_balance_mp_relax"),
+            log_nbr_state_changes=bgp_config.get("log_nbr_state_changes"),
+            network_import_check=bgp_config.get("network_import_check")
         )] = bgp_family
     return bgp_global_list
 
