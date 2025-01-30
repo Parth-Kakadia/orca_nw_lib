@@ -2,29 +2,31 @@
 # This code is the property of STORDIS GmbH and can not be redistributed without the written permission of STORDIS GmbH.
 from enum import Enum
 import base64
-import json
- 
+
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from orca_nw_lib.utils import get_logging
+
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
- 
+
 import ssl
+
 ssl._create_default_https_context = ssl._create_unverified_context
- 
+
 _logger = get_logging().getLogger(__name__)
 
 
 username = "admin"
 password = "YourPaSsWoRd"
- 
+
 auth_string = base64.b64encode(f"{username}:{password}".encode()).decode()
 headers = {
     "Authorization": f"Basic {auth_string}",
     "Content-Type": "application/yang-data+json",
 }
- 
+
+
 ## Enum for http requests
 class HttpRequest(Enum):
     GET = "GET"
@@ -32,8 +34,8 @@ class HttpRequest(Enum):
     POST = "POST"
     PATCH = "PATCH"
     DELETE = "DELETE"
- 
- 
+
+
 def send_req(req: HttpRequest, resource_url, req_body=None, timeout_sec=5):
     response = None
     switch_case = {
@@ -56,7 +58,7 @@ def send_req(req: HttpRequest, resource_url, req_body=None, timeout_sec=5):
     except requests.exceptions.Timeout as e:
         _logger.error(e)
     except requests.exceptions.RequestException as e:
-         _logger.error(e)
+        _logger.error(e)
     # parse resource_url and print only the IP
     ip = resource_url.split("/")[2]
     # _logger.debug(f"{req} Request sent to {ip}")
@@ -68,17 +70,3 @@ def send_req(req: HttpRequest, resource_url, req_body=None, timeout_sec=5):
         else:
             _logger.info("no output")
     return response
- 
- 
-def do_json_syntax_correction(json_text):
-    return (
-        json_text.replace(" ", "")
-        .replace("\\n", "")
-        .replace('\\"', '"')
-        .replace('\\"', '"')
-        .replace(':"{', ":{")
-        .replace('}"}}', "}]}}")
-        .replace("}{", "},{")
-        .replace('"response":', '"response":[')
-    )
- 

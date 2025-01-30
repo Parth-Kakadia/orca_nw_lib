@@ -1,4 +1,8 @@
+import json
 from typing import List
+
+from orca_nw_lib.bgp_influxdb import insert_bgp_in_influxdb, insert_bgp_neighbor_in_influxdb, insert_bgp_show_in_influxdb, insert_bgp_statistics_in_influxdb
+from orca_nw_lib.bgp_rest import get_bgp_show_info, get_bgp_show_statistics_info
 from .bgp_db import (
     get_bgp_global_af_list_from_db,
     get_bgp_global_with_vrf_from_db,
@@ -23,7 +27,7 @@ from .bgp_gnmi import (
     get_bgp_neighbors_from_device, del_bgp_global_af_from_device, config_bgp_global_af_network_on_device,
     del_bgp_global_af_network_on_device,
     config_bgp_global_af_aggregate_addr_on_device, del_bgp_global_af_aggregate_addr_on_device,
-    get_bgp_details_from_device, del_bgp_neighbor_from_device,
+    get_bgp_details_from_device, del_bgp_neighbor_from_device
 )
 from .device_db import get_device_db_obj
 
@@ -35,7 +39,7 @@ from .graph_db_models import (
     BGP_NEIGHBOR,
     BGP_NEIGHBOR_AF
 )
-from .utils import get_logging
+from .utils import get_logging, get_telemetry_db
 
 _logger = get_logging().getLogger(__name__)
 
@@ -103,6 +107,16 @@ def _create_bgp_graph_objects(device_ip: str) -> dict:
             local_asn=bgp_config.get("local_asn"),
             router_id=bgp_config.get("router_id"),
             vrf_name=bgp_config.get("vrf_name"),
+            always_compare_med=bgp_config.get("always_compare_med"),
+            ebgp_requires_policy=bgp_config.get("ebgp_requires_policy"),
+            external_compare_router_id=bgp_config.get("external_compare_router_id"),
+            fast_external_failover=bgp_config.get("fast_external_failover"),
+            holdtime=bgp_config.get("holdtime"),
+            ignore_as_path_length=bgp_config.get("ignore_as_path_length"),
+            keepalive=bgp_config.get("keepalive"),
+            load_balance_mp_relax=bgp_config.get("load_balance_mp_relax"),
+            log_nbr_state_changes=bgp_config.get("log_nbr_state_changes"),
+            network_import_check=bgp_config.get("network_import_check")
         )] = bgp_family
     return bgp_global_list
 
@@ -269,13 +283,27 @@ def discover_bgp(device_ip: str = None):
     for device in devices:
         try:
             _logger.info(f"Discovering BGP on device {device}.")
-            insert_device_bgp_in_db(device, _create_bgp_graph_objects(device.mgt_ip))
+            bgp_object = _create_bgp_graph_objects(device.mgt_ip)
+            insert_device_bgp_in_db(device, bgp_object)
+            if get_telemetry_db() == "influxdb":
+                bgp_show_data = get_bgp_show_details(device_ip)
+                bgp_show_statistics_data = get_bgp_show_statistics_details(device_ip)
+                
+                insert_bgp_in_influxdb(device_ip, bgp_object)
+                if bgp_show_data:
+                    insert_bgp_show_in_influxdb(device_ip, bgp_show_data)
+                if bgp_show_statistics_data:
+                    insert_bgp_statistics_in_influxdb(device_ip, bgp_show_statistics_data)
+            elif get_telemetry_db() == "prometheus":
+                pass
+                #insert_bgp_in_prometheus(device_ip, bgp_object)
+            else:
+                _logger.debug("Telemetry DB not configured, skipping device info insertion for IP: %s", device_ip)
         except Exception as e:
             _logger.error(
                 f"BGP Discovery Failed on device {device.mgt_ip}, Reason: {e}"
             )
             raise
-
 
 def config_bgp_neighbor_af(
         device_ip: str,
@@ -617,7 +645,16 @@ def discover_bgp_neighbors(device_ip: str):
     for device in devices:
         try:
             _logger.info(f"Discovering BGP Neighbors on device {device}.")
-            insert_device_bgp_neighbors_in_db(device, _create_bgp_neighbors_graph_objects(device.mgt_ip))
+            bgp_neighbor_object = _create_bgp_neighbors_graph_objects(device.mgt_ip)
+            insert_device_bgp_neighbors_in_db(device, bgp_neighbor_object)
+            ## Check if the telemetry DB is influxdb or prometheus for inserting device info.
+            if get_telemetry_db() == "influxdb":
+                insert_bgp_neighbor_in_influxdb(device_ip, bgp_neighbor_object)
+            elif get_telemetry_db() == "prometheus":
+                pass
+                #insert_bgp_in_prometheus(device_ip, bgp_neighbor_object)
+            else:
+                _logger.debug("Telemetry DB not configured, skipping device info insertion for IP: %s", device_ip)
         except Exception as e:
             _logger.error(
                 f"BGP Neighbor Discovery Failed on device {device.mgt_ip}, Reason: {e}"
@@ -799,3 +836,99 @@ def get_bgp_neighbor_local_bgp(device_ip: str, neighbor_ip: str, asn: str = None
         return [i.__properties__ for i in data] if data else None
     else:
         return data.__properties__ if data else None
+
+
+def get_bgp_show_details(device_ip: str) -> dict:
+    """
+    Retrieves BGP details for a specific device IP address.
+
+    Args:
+        device_ip (str): The IP address of the device.
+
+    Returns:
+        dict: A dictionary containing the BGP details with standardized keys.
+    """
+    bgp_response_data = get_bgp_show_info(device_ip)
+    try:
+        response_json = bgp_response_data.json()
+    except Exception as e:
+        _logger.error(f"Failed to parse BGP response JSON for device {device_ip}: {e}")
+        return {}
+
+    if "sonic-bgp-show:output" not in response_json:
+        _logger.error(f"Missing 'sonic-bgp-show:output' in BGP data for device {device_ip}")
+        return {}
+
+    sonic_bgp_response_data = response_json.get("sonic-bgp-show:output", {})
+    response_data = sonic_bgp_response_data['response']
+    response_data_json = json.loads(response_data)
+    peers_data = response_data_json.get("peers", {})
+
+    peer_details = []
+    bgp_show_details = {}
+
+    for peer_ip, peer_info in peers_data.items():
+        peer_details.append({
+            "peer_ip": peer_ip,
+            "remote_as": peer_info.get("remoteAs"),
+            "state": peer_info.get("state"),
+            "connections_dropped": peer_info.get("connectionsDropped"),
+            "connections_established": peer_info.get("connectionsEstablished"),
+            "messages_received": peer_info.get("msgRcvd"),
+            "messages_sent": peer_info.get("msgSent"),
+            "uptime": peer_info.get("peerUptime"),
+            "prefixes_received": peer_info.get("pfxRcd"),
+            "prefixes_sent": peer_info.get("pfxSnt"),
+            "id_type": peer_info.get("idType"),
+            "input_queue": peer_info.get("inq"),
+            "local_as": peer_info.get("localAs"),
+            "output_queue": peer_info.get("outq"),
+            "peer_uptime_epoch": peer_info.get("peerUptimeEstablishedEpoch"),
+            "peer_uptime_msec": peer_info.get("peerUptimeMsec"),
+            "table_version": peer_info.get("tableVersion"),
+            "version": peer_info.get("version"),
+        })
+
+    bgp_show_details.update({
+        "local_as": response_data_json.get("as"),
+        "router_id": response_data_json.get("routerId"),
+        "total_peers": response_data_json.get("totalPeers"),
+        "peers_up": response_data_json.get("totalPeersUp"),
+        "rib_count": response_data_json.get("ribCount"),
+        "rib_memory": response_data_json.get("ribMemory"),
+        "table_version": response_data_json.get("tableVersion"),
+        "vrf_id": response_data_json.get("vrfId"),
+        "vrf_name": response_data_json.get("vrfName"),
+        "peers": peer_details,
+    })
+
+    return bgp_show_details
+
+
+def get_bgp_show_statistics_details(device_ip: str) -> dict:
+    """
+    Processes BGP data to extract and organize information for telemetry insertion.
+
+    Args:
+        device_ip (str): The IP address of the device.
+
+    Returns:
+        dict: A dictionary containing only the relevant BGP response data.
+    """
+    bgp_show_statistics_raw_data = get_bgp_show_statistics_info(device_ip)
+
+    try:
+        response_json = bgp_show_statistics_raw_data.json()
+    except Exception as e:
+        _logger.error(f"Failed to parse BGP response JSON for device {device_ip}: {e}")
+        return {}
+
+    if "sonic-bgp-show:output" not in response_json:
+        _logger.error(f"Missing 'sonic-bgp-show:output' in BGP data for device {device_ip}")
+        return {}
+
+    # Extract the response data (both ipv4Unicast and ipv6 data)
+    sonic_bgp_statistics_response_data = response_json.get("sonic-bgp-show:output", {})
+    response_data = sonic_bgp_statistics_response_data.get('response', {})
+
+    return response_data
