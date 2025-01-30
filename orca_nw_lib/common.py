@@ -255,6 +255,7 @@ class DiscoveryFeature(str, Enum):
     lldp_info = auto()
     mclag_gw_macs = auto()
     system = auto()
+    evpn = auto()
 
     @staticmethod
     def get_enum_from_str(name: str):

@@ -1,6 +1,7 @@
 import ipaddress
 import time
 
+from orca_nw_lib.evpn import discover_evpn
 from orca_nw_lib.lldp_db import create_lldp_relations_in_db
 from orca_nw_lib.system import discover_system
 from .common import DiscoveryFeature
@@ -94,8 +95,11 @@ def _discover_device_and_lldp_info(device_ips: list):
     """
 
     # Discover interfaces, devices, port groups and lldp info first.
+    report = []
     for device_ip in device_ips:
-        _discover_device_and_enable_ifs(device_ip)
+        enable_ifs_report = _discover_device_and_enable_ifs(device_ip)
+        if enable_ifs_report:
+            report.extend(enable_ifs_report)
 
     # Discover lldp neighbors for each discovered device.
     for device_ip in device_ips:
@@ -104,6 +108,8 @@ def _discover_device_and_lldp_info(device_ips: list):
                     nbr_ip
             ):  # Discover only if not already discovered in order to prevent loop
                 _discover_device_and_lldp_info(device_ips=[nbr_ip])
+
+    return report
 
 
 def discover_device(device_ips: list, feature_to_discover: DiscoveryFeature = None):
@@ -121,8 +127,9 @@ def discover_device(device_ips: list, feature_to_discover: DiscoveryFeature = No
         None
     """
     # Discover the device and its neighbors and basic device info
+    report = []
     device_ips = device_ips if isinstance(device_ips, list) else [device_ips]
-    _discover_device_and_lldp_info(device_ips)
+    report.extend(_discover_device_and_lldp_info(device_ips))
 
     # Discover the rest of the features
     # some links can only be created after all teh topology devices are discovered
@@ -141,6 +148,8 @@ def discover_device(device_ips: list, feature_to_discover: DiscoveryFeature = No
             discover_nw_features(ip, DiscoveryFeature.stp_port)
             discover_nw_features(ip, DiscoveryFeature.stp_vlan)
         gnmi_subscribe(ip)
+
+    return report
 
 
 def discover_device_from_config() -> []:
@@ -277,6 +286,12 @@ def discover_nw_features(device_ip: str, feature: DiscoveryFeature) -> None:
             except Exception as e:
                 _logger.info(f"System Discovery Failed on device {device_ip}, Reason: {e}")
                 return f"System Discovery Failed on device {device_ip}, Reason: {e}"
+        case DiscoveryFeature.evpn:
+            try:
+                discover_evpn(device_ip)
+            except Exception as e:
+                _logger.info(f"EVPN Discovery Failed on device {device_ip}, Reason: {e}")
+                return f"EVPN Discovery Failed on device {device_ip}, Reason: {e}"
         case _:
             _logger.error("Invalid feature specified")
             return "Invalid feature specified"
