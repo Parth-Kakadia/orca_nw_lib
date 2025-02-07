@@ -28,4 +28,4 @@ def insert_device_info_in_influxdb(device_ip:str, device_info):
         write_to_influx(point=point)
         logger.info("Device info sent to InfluxDB successfully for IP: %s", device_ip)
     except Exception as e:
-        logger.error(f"Failed to push metrics to Pushgateway for device: {e}")
+        logger.error(f"Error instering device info in influxdb: {e}")

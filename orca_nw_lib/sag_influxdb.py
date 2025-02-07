@@ -31,7 +31,7 @@ def insert_sag_info_in_influxdb(device_ip: str, sag_data: dict):
         
         # Write the Point to the InfluxDB bucket
         write_to_influx(point=point)
-        #logger.info("Metrics pushed to InfluxDB successfully for IP: %s", device_ip)
+        logger.debug("SAG info sent to InfluxDB successfully for IP: %s", device_ip)
     
     except Exception as e:
-        print(f"An error occurred while sending data to InfluxDB: {e}")
+        print(f"Error instering SAG info in influxdb: {e}")

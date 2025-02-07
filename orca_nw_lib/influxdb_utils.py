@@ -27,10 +27,16 @@ def write_to_influx(point):
     Returns:
         None
     """
-    client = get_influxdb_client()
-    bucket = get_influxdb_bucket()
-    org = get_influxdb_org()
-    write_api = client.write_api(write_options=SYNCHRONOUS)
-    write_api.write(bucket=bucket, record=point, org= org)
+    try:
+        client = get_influxdb_client()
+        bucket = get_influxdb_bucket()
+        org = get_influxdb_org()
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        write_api.write(bucket=bucket, record=point, org=org)
+    except Exception as e:
+        if hasattr(e, 'status') and e.status in [401, 403]:
+            raise Exception(f"Influxdb token is invalid or lacks permissions, please check configurations: {e}")
+        else:
+            raise Exception(f"Influxdb url is invalid or has connection issues, please check configurations: {e}")
     
 

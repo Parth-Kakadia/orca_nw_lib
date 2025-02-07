@@ -31,7 +31,7 @@ def handle_interface_counters_influxdb(device_ip: str, resp: SubscribeResponse):
             ether_pnt = device_pnt.tag("ether_name", ether)
             break
     if not ether:
-        _logger.debug("Ethernet interface not found in gNMI subscription response from %s",device_ip,)
+        _logger.error("Ethernet interface not found in gNMI subscription response from %s",device_ip,)
         return
     
     # Insert each intfc cntrs update
@@ -87,4 +87,4 @@ def insert_device_interfaces_in_influxdb(device: Device, interfaces: dict):
 
             write_to_influx(point=point)
     except Exception as e:
-        _logger.error(f"Error instering in influxdb: {e}")
+        _logger.error(f"Error instering interface info in influxdb: {e}")

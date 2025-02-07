@@ -127,4 +127,4 @@ def insert_system_in_influxdb(device_ip: str, system_info: dict):
         write_to_influx(point=point)
         _logger.debug("system info inserted to influxdb %s ",device_ip)
     except Exception as e:
-        _logger.error(f"Error instering in influxdb: {e}")
+        _logger.error(f"Error instering system info in influxdb: {e}")

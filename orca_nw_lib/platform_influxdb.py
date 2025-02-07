@@ -32,7 +32,7 @@ def insert_platform_info_in_influxdb(device_ip: str, platform_data: dict):
             write_to_influx(point=point1)
         #logger.info("PSU info successfully sent to InfluxDB.")
     except Exception as e:
-        logger.error(f"Error processing PSU metrics: {e}")
+        logger.error(f"Error instering PSU metrics in influxdb: {e}")
 
 
     
@@ -57,7 +57,7 @@ def insert_platform_info_in_influxdb(device_ip: str, platform_data: dict):
             write_to_influx(point=point2)
         #logger.info("Fan info successfully sent to InfluxDB.")
     except Exception as e:
-        logger.error(f"Error processing FAN metrics: {e}")
+        logger.error(f"Error instering FAN metrics in influxdb: {e}")
     
     try:
         point3 = create_point("TEMPERATURE_INFO")
@@ -77,6 +77,6 @@ def insert_platform_info_in_influxdb(device_ip: str, platform_data: dict):
             write_to_influx(point=point3)
         #logger.info("Temp info successfully sent to InfluxDB.")
     except Exception as e:
-        logger.error(f"Error processing TEMP metrics: {e}")
+        logger.error(f"Error instering TEMP metrics in influxdb: {e}")
 
 
