@@ -254,14 +254,19 @@ def config_interface(device_ip: str, if_name: str, **kwargs):
         kwargs (dict): The configuration parameters of the interface.
 
     kwargs:
-        enable (bool, optional): The enable status of the interface. Defaults to None.
-        mtu (int, optional): The maximum transmission unit of the interface. Defaults to None.
-        speed (Speed, optional): The speed of the interface. Defaults to None.
-        description (str, optional): The description of the interface. Defaults to None.
-        ip_with_prefix (str, optional): The IP address and prefix of the interface. Defaults to None.
-        index (int, optional): The index of the sub-interface. Defaults to 0.
-        fec (PortFec, optional): Enable disable forward error correction. Defaults to None.
-        secondary (bool, optional): The secondary status of the interface. Defaults to False.
+        enable (bool, optional): Whether to enable the interface. Defaults to None.
+        mtu (int, optional): The maximum transmission unit (MTU) size. Defaults to None.
+        description (str, optional): The interface description. Defaults to None.
+        speed (Speed, optional): The interface speed. Defaults to None.
+        ip_with_prefix (str, optional): The IP address with prefix. Defaults to None.
+        index (int, optional): The index of the subinterface. Defaults to 0.
+        fec (bool, optional): Whether to enable forward error correction. Defaults to None.
+        if_mode (IFMode, optional): The interface mode. Defaults to None.
+        vlan_id (int, optional): The VLAN ID of the interface. Defaults to None.
+        autoneg (bool, optional): Whether to enable auto-negotiation. Defaults to None.
+        adv_speeds (str, optional): The list of advertised speeds. Defaults to "all".
+        link_training (bool, optional): Whether to enable link training. Defaults to None.
+        secondary (bool, optional): Whether the IP configuration is secondary or not. Defaults to False.
 
     """
     _logger.debug("Configuring interface %s on device %s", if_name, device_ip)

@@ -272,6 +272,7 @@ def set_interface_config_on_device(
         autoneg (bool, optional): Whether to enable auto-negotiation. Defaults to None.
         adv_speeds (str, optional): The list of advertised speeds. Defaults to "all".
         link_training (bool, optional): Whether to enable link training. Defaults to None.
+        secondary (bool, optional): Whether the IP configuration is secondary or not. Defaults to False.
 
     Returns:
         None: If no updates were made.
